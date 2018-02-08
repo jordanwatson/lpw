@@ -1,0 +1,929 @@
+---
+title: "LPW_Summary"
+author: "Jordan Watson"
+date: "August 29, 2017"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,fig.width=8,message=FALSE,warning=FALSE)
+
+library(tidyverse)
+library(readxl)
+library(broom)
+library(mgcv)
+library(forcats)
+library(viridis)
+library(rgdal)
+library(maps)
+library(mapdata)
+library(PBSmapping)
+library(marmap)
+library(grid)
+library(gridExtra)
+library(trend)
+library(ggthemes)
+```
+
+The map is wonky here but the separate #png should work. We can discuss the bounds you'd like but I'll need a better shapefile for Baranof if we want to zoom any closer.
+
+```{r LPW_Map,fig.cap="Map of Alaska showing the location of Little Port Walter Field Station (red dot)."}
+data(nepacLLhigh)
+
+xmin <- -137
+xmax <- -133.5
+ymin <-  56
+ymax <-  58
+
+insetxmin <- -170
+insetxmax <- -130
+insetymin <- 50
+insetymax <- 71
+
+world <- clipPolys(nepacLLhigh, xlim=c(xmin,xmax),ylim=c(ymin,ymax), keepExtra=FALSE)
+
+mymap1 <- getNOAA.bathy(lon1 = xmin, lon2 = xmax, lat1 = ymin, lat2 = ymax, resolution = 2)
+
+my.map <- autoplot(mymap1,geom=c("raster"),coast=FALSE) +   
+  geom_polygon(data=world,aes(x=X,y=Y,group=factor(PID))) + 
+  geom_point(data=data.frame(long=-134.645,lat=56.38),aes(long,lat),color="red",size=3) + 
+  theme_bw() + 
+  xlab("Longitude") + 
+  ylab("Latitude") + 
+  theme(legend.position="none")
+
+#my.map
+
+#  Create our extent rectangle
+my.extent<-data.frame(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax)
+
+#  This is just a data.frame with four points.
+#my.extent
+
+#  Let's plot the inset
+my.inset <- ggplot() + 
+  geom_polygon(data=nepacLLhigh,aes(x=X,y=Y,group=PID),fill="grey30") + 
+  coord_map(xlim=c(insetxmin,insetxmax),ylim=c(insetymin,insetymax)) + 
+  geom_rect(data = my.extent, 
+            aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
+            alpha=0, 
+            colour="red", 
+            size = 1, 
+            linetype=1) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        plot.margin=unit(c(0,0,0,0),"mm"),
+        panel.border = element_blank()) +
+  labs(x=NULL,y=NULL)
+
+#my.inset
+
+##png(file="Figures/LPW_Map.png",w=1800,h=1800, res=300)
+grid.newpage()
+v1<-viewport(width = 1, height = 1, x = 0.5, y = 0.5) #plot area for the main map
+v2<-viewport(width = 0.2, height = 0.2, x = 0.88, y = 0.88) #plot area for the inset map
+print(my.map,vp=v1) 
+print(my.inset,vp=v2)
+##dev.off()
+```
+
+\pagebreak
+
+```{r LPW_Map_Unuk,fig.cap="Map of Alaska showing the location of Little Port Walter Field Station (red dot)."}
+data(nepacLLhigh)
+
+xmin <- -137
+xmax <- -130.9
+ymin <-  55.5
+ymax <-  58
+
+insetxmin <- -170
+insetxmax <- -130
+insetymin <- 50
+insetymax <- 71
+
+world <- clipPolys(nepacLLhigh, xlim=c(xmin,xmax),ylim=c(ymin,ymax), keepExtra=FALSE)
+
+mymap1 <- getNOAA.bathy(lon1 = xmin, lon2 = xmax, lat1 = ymin, lat2 = ymax, resolution = 2)
+
+my.map <- autoplot(mymap1,geom=c("raster"),coast=FALSE) +   
+  geom_polygon(data=world,aes(x=X,y=Y,group=factor(PID))) + 
+  geom_point(data=data.frame(long=-134.645,lat=56.38),aes(long,lat),color="red",size=3) + 
+  geom_point(data=data.frame(long=-131.06,lat=56.08),aes(long,lat),color="red",size=3) + 
+  theme_bw() + 
+  xlab("Longitude") + 
+  ylab("Latitude") + 
+  theme(legend.position="none") + 
+  annotate("text",x=-131.45,y=56.11,label = "Unuk R.",color="white") + 
+  annotate("text",x=-134.35,y=56.4,label = "LPW",color="white")
+
+#my.map
+
+#  Create our extent rectangle
+my.extent<-data.frame(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax)
+
+#  This is just a data.frame with four points.
+#my.extent
+
+#  Let's plot the inset
+my.inset <- ggplot() + 
+  geom_polygon(data=nepacLLhigh,aes(x=X,y=Y,group=PID),fill="grey30") + 
+  coord_map(xlim=c(insetxmin,insetxmax),ylim=c(insetymin,insetymax)) + 
+  geom_rect(data = my.extent, 
+            aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
+            alpha=0, 
+            colour="red", 
+            size = 1, 
+            linetype=1) + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        plot.margin=unit(c(0,0,0,0),"mm"),
+        panel.border = element_blank()) +
+  labs(x=NULL,y=NULL)
+
+#my.inset
+
+png(file="Figures/LPW_Map_w_Unuk.png",w=1800,h=1800, res=300)
+grid.newpage()
+v1<-viewport(width = 1, height = 1, x = 0.5, y = 0.5) #plot area for the main map
+v2<-viewport(width = 0.2, height = 0.2, x = 0.88, y = 0.75) #plot area for the inset map
+print(my.map,vp=v1) 
+print(my.inset,vp=v2)
+dev.off()
+```
+
+\pagebreak
+
+```{r readData}
+temp <- read_csv("Data/All_Recoveries_All_LPW_Chinook.txt") %>% 
+  inner_join(read_excel("Data/Indicators.xlsx",sheet="Sheet1") %>% 
+               dplyr::select(brood_year,stock,tag_code)) %>% 
+  mutate(age=run_year-brood_year,
+         recov=ifelse(recovery_location_code=="1F1NE109 10","lpw","non-lpw")) %>% 
+  dplyr::select(run_year,recovery_id,stock,brood_year,tag_code,sex,age,length,weight)
+
+survdat <- read_csv("Data/RMIS_Survival.csv") %>% 
+  mutate(tag_code=paste0("0",Tagcode)) %>% 
+  inner_join(read_excel("Data/Indicators.xlsx",sheet="Sheet1") %>% 
+               dplyr::select(brood_year,stock,tag_code)) %>% 
+  filter(stock!="KETA R 101-30") %>% 
+  rename(Survival=surv)
+
+spawn <- temp %>% 
+  left_join(survdat %>% 
+              dplyr::select(brood_year,tag_code,Survival)) %>% 
+  mutate(concat=paste0(age,sex)) %>% 
+  filter(stock=="UNUK R" & !is.na(sex) & concat%in%c("5F","6F","4M","5M","6M") & brood_year>1976 & brood_year<2012) %>% 
+  mutate(weight=as.numeric(weight))
+
+spawn <- temp %>% 
+  left_join(survdat %>% 
+              dplyr::select(brood_year,tag_code,Survival)) %>% 
+  mutate(concat=paste0(age,sex)) %>% 
+  filter(!is.na(sex) & concat%in%c("5F","6F","4M","5M","6M") & brood_year>1976 & brood_year<2012) %>% 
+  mutate(weight=as.numeric(weight))
+
+spawn <- spawn %>% 
+  mutate(wt_flag=ifelse(!is.na(weight) & weight>50,1,0)) %>% 
+  filter(wt_flag!=1) %>% 
+  dplyr::select(-wt_flag)
+```
+
+\pagebreak
+
+```{r lengthScatter_portrait,fig.cap="Chinook length by sex and age."}
+
+#  First for all data points (it's messy)
+p <- spawn %>% 
+  mutate(sex=fct_recode(sex,"Male"="M",
+                        "Female"="F"),
+         fage=fct_recode(as.factor(age),"2-Ocean"="4","3-Ocean"="5","4-Ocean"="6"),
+         agesex=paste(sex,fage,sep="; "),
+         agesex=fct_expand(factor(agesex),"Female; 2-Ocean"),
+         agesex=fct_relevel(agesex,"Male; 2-Ocean","Male; 3-Ocean","Male; 4-Ocean","Female; 2-Ocean")) 
+
+p1 <- p %>%  
+  ggplot(aes(brood_year,length)) + 
+  geom_point(size=0.5) + 
+  facet_wrap(~agesex,drop = FALSE,scales="free_y",ncol=2,dir="v") + 
+  stat_smooth(se=FALSE,color="black",linetype=1) + 
+  stat_smooth(se=FALSE,method="lm",color="black",linetype=2) + 
+  ylab("Length (mm)") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5)) + 
+  scale_x_continuous(breaks=seq(1977,2011),
+                     labels=c("1977","","","","1981","","","","1985","","","","1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","",""))
+
+g <- ggplotGrob(p1)
+# get the grobs that must be removed
+rm_grobs <- g$layout$name %in% c("panel-2-2", "strip-t-2-1")
+# remove grobs
+g$grobs[rm_grobs] <- NULL
+g$layout <- g$layout[!rm_grobs, ]
+## move axis closer to panel
+g$layout[g$layout$name == "axis-b-1-2", c("t", "b")] = c(9, 9)
+#  If you don't use scales=free_y in the facet, you'll want this.
+#g$layout[g$layout$name == "axis-l-2-1", c("l", "r")] = c(7, 7)
+#grid.newpage()
+#grid.draw(g)
+
+#  Now create the cleaner (final?) figure with average length in each year
+p1 <- p %>%  
+  group_by(brood_year,agesex) %>% 
+  summarise(length=mean(length,na.rm=TRUE)) %>% ungroup %>%
+  ggplot(aes(brood_year,length)) + 
+  geom_point() + 
+  facet_wrap(~agesex,drop = FALSE,scales="free_y",ncol=2,dir="v") + 
+  stat_smooth(se=FALSE,color="black",linetype=1) + 
+  stat_smooth(se=FALSE,method="lm",color="black",linetype=2) + 
+  ylab("Length (mm)") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5)) + 
+  scale_x_continuous(breaks=seq(1977,2011),
+                     labels=c("1977","","","","1981","","","","1985","","","","1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","",""))
+
+g <- ggplotGrob(p1)
+# get the grobs that must be removed
+rm_grobs <- g$layout$name %in% c("panel-2-2", "strip-t-2-1")
+# remove grobs
+g$grobs[rm_grobs] <- NULL
+g$layout <- g$layout[!rm_grobs, ]
+## move axis closer to panel
+g$layout[g$layout$name == "axis-b-1-2", c("t", "b")] = c(9, 9)
+#  If you don't use scales=free_y in the facet, you'll want this.
+#g$layout[g$layout$name == "axis-l-2-1", c("l", "r")] = c(7, 7)
+#grid.newpage()
+#grid.draw(g)
+
+
+#  If we add Chickamin into the figure
+#  Note that one point with a small mean is driving the apparent upward trend in size.
+#  If we filter lengths to be greater than 510, this outlier effect is removed.
+p1 <- p %>% 
+  filter(length>510) %>% 
+  group_by(brood_year,agesex,stock) %>% 
+  summarise(length=mean(length,na.rm=TRUE)) %>% ungroup %>%
+  rename(Stock=stock) %>% 
+  ggplot(aes(brood_year,length,color=Stock)) + 
+  geom_point() + 
+  facet_wrap(~agesex,drop = FALSE,scales="free_y",ncol=2,dir="v") + 
+  stat_smooth(aes(color=Stock),se=FALSE,linetype=1) + 
+  stat_smooth(aes(color=Stock),se=FALSE,method="lm",linetype=2) + 
+  ylab("Length (mm)") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5),
+        legend.position=c(0.75,0.90)) + 
+  scale_x_continuous(breaks=seq(1977,2011),
+                     labels=c("1977","","","","1981","","","","1985","","","","1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","","")) + 
+  scale_color_grey()
+
+
+g <- ggplotGrob(p1)
+# get the grobs that must be removed
+rm_grobs <- g$layout$name %in% c("panel-2-2", "strip-t-2-1")
+# remove grobs
+g$grobs[rm_grobs] <- NULL
+g$layout <- g$layout[!rm_grobs, ]
+## move axis closer to panel
+g$layout[g$layout$name == "axis-b-1-2", c("t", "b")] = c(9, 9)
+#  If you don't use scales=free_y in the facet, you'll want this.
+#g$layout[g$layout$name == "axis-l-2-1", c("l", "r")] = c(7, 7)
+grid.newpage()
+grid.draw(g)
+
+png("Length_at_age.png",width=6,height=6,units="in",res=120);grid.draw(g);dev.off()
+```
+
+
+
+```{r, summarise_linear_models_length}
+#  Create a table of linear model outputs
+mdat <- p %>%
+  filter(length>510) %>% 
+  group_by(agesex,brood_year,stock) %>% 
+  summarise(length=mean(length,na.rm=TRUE)) %>% data.frame
+
+#  Make individual models for exploring residuals
+#lm1 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 3-Ocean")))
+#lm2 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 4-Ocean")))
+#lm3 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 2-Ocean")))
+#lm4 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 3-Ocean")))
+#lm5 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 4-Ocean")))
+
+
+p.coef <- mdat %>% 
+  group_by(agesex,stock) %>% 
+  do(tidy(lm(length~brood_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  arrange(stock,agesex) %>% 
+  data.frame
+
+p.sum <- mdat %>% 
+  group_by(agesex,stock) %>% 
+  do(glance(lm(length~brood_year,data=.))) %>% 
+  data.frame %>% 
+  dplyr::select(agesex,stock,adj.r.squared) %>% 
+    arrange(stock,agesex) %>% 
+  data.frame
+  
+p.sum %>% 
+  inner_join(p.coef) %>% 
+  dplyr::select(agesex,stock,-term,estimate,se=std.error,-statistic,p.value,rsq=adj.r.squared) %>% 
+  mutate_if(is.numeric,round,2) %>% 
+  write_csv("Length_at_age_stock_linear_regressions.csv")
+```
+
+
+```{r, summarise_gam_models_length}
+#  Create a table of GAM outputs
+gam1 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 2-Ocean" & stock=="UNUK R"))
+gam2 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 3-Ocean" & stock=="UNUK R"))
+gam3 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 4-Ocean" & stock=="UNUK R"))
+gam4 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 3-Ocean" & stock=="UNUK R"))
+gam5 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 4-Ocean" & stock=="UNUK R"))
+gam6 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 2-Ocean" & stock!="UNUK R"))
+gam7 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 3-Ocean" & stock!="UNUK R"))
+gam8 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 4-Ocean" & stock!="UNUK R"))
+gam9 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 3-Ocean" & stock!="UNUK R"))
+gam10 <- gam(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 4-Ocean" & stock!="UNUK R"))
+
+g1 <- summary(gam1)
+g2 <- summary(gam2)
+g3 <- summary(gam3)
+g4 <- summary(gam4)
+g5 <- summary(gam5)
+g6 <- summary(gam6)
+g7 <- summary(gam7)
+g8 <- summary(gam8)
+g9 <- summary(gam9)
+g10 <- summary(gam10)
+
+#gam.check(gam1)
+#gam.check(gam2)
+#gam.check(gam3)
+#gam.check(gam4)
+#gam.check(gam5)
+
+mdat %>% 
+  group_by(agesex) %>% 
+  do(tidy(gam(length~s(brood_year),data=.))) %>% 
+  inner_join(data.frame(agesex=unique(mdat$agesex),
+                        dev.expl=c(g1$dev.expl,g2$dev.expl,g3$dev.expl,g4$dev.expl,g5$dev.expl,
+                                   g6$dev.expl,g7$dev.expl,g8$dev.expl,g9$dev.expl,g10$dev.expl))) %>% 
+  dplyr::select(-term,-ref.df,-statistic) %>% 
+  mutate(dev.expl=100*dev.expl) %>% 
+  mutate_if(is.numeric,round,2) %>% 
+  write_csv("GAM_Model_Output.csv")
+```
+
+
+```{r,fig.cap="Compare length at age by sex (i.e., lpw fish) with non-lpw fish, for which sex is not known."}
+temp <- read_csv("Data/All_Recoveries_All_LPW_Chinook.txt") %>% 
+  inner_join(read_excel("Data/Indicators.xlsx",sheet="Sheet1") %>% 
+               dplyr::select(brood_year,stock,tag_code)) %>% 
+  mutate(age=run_year-brood_year,
+         recov=ifelse(recovery_location_code=="1F1NE109 10","lpw","non-lpw")) %>% 
+  dplyr::select(run_year,recovery_id,stock,brood_year,tag_code,sex,age,length,weight)
+
+
+spawn2 <- temp %>% 
+  left_join(survdat %>% 
+              dplyr::select(brood_year,tag_code,Survival)) %>% 
+  mutate(concat=paste0(age,sex)) %>% 
+  filter(stock=="UNUK R" & brood_year>1976 & brood_year<2012) %>% 
+  mutate(weight=as.numeric(weight))
+
+spawn2 <- temp %>% 
+  left_join(survdat %>% 
+              dplyr::select(brood_year,tag_code,Survival)) %>% 
+  mutate(concat=paste0(age,sex)) %>% 
+  filter(brood_year>1976 & brood_year<2012) %>% 
+  mutate(weight=as.numeric(weight))
+
+
+spawn2 <- spawn2 %>% 
+  mutate(wt_flag=ifelse(!is.na(weight) & weight>50,1,0),
+         sexna=ifelse(is.na(sex),"N",sex)) %>% 
+  filter(wt_flag!=1) %>% 
+  dplyr::select(-wt_flag) %>% 
+  filter(age>3 & age<7) %>%
+  mutate(fage=fct_recode(as.factor(age),"2-Ocean"="4","3-Ocean"="5","4-Ocean"="6"),
+         agesex=paste(sexna,fage,sep="; ")) %>% 
+  filter(agesex!="F; 2-Ocean")
+
+spawn2 %>% 
+  filter(age>3 & age<7) %>% 
+  group_by(age,sexna) %>% 
+  do(tidy(lm(length~brood_year,data=.))) %>% 
+  filter(term!="(Intercept)")
+```
+
+
+```{r Length_by_brood_unuk}
+spawn2 %>% 
+  filter(stock=="UNUK R") %>% 
+  mutate(sexna=fct_recode(sexna,"Males"="M","Females"="F","No sex ID"="N")) %>%
+  ggplot(aes(brood_year,length)) + 
+  facet_wrap(~fage,drop = FALSE,scales="free_y",ncol=2,dir="v") + 
+  stat_smooth(aes(linetype=sexna,color=sexna),se=FALSE) + 
+  stat_smooth(aes(linetype=sexna,color=sexna),se=FALSE,method="lm") + 
+  ylab("Length (mm)") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5),
+        legend.title=element_blank(),
+        legend.position=c(0.65,0.25)) + 
+  scale_x_continuous(breaks=seq(1977,2011),
+                     labels=c("1977","","","","1981","","","","1985","","","","1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","",""))
+```
+
+
+```{r Length_by_brood_chick}
+spawn2 %>% 
+  filter(stock!="UNUK R") %>% 
+  mutate(sexna=fct_recode(sexna,"Males"="M","Females"="F","No sex ID"="N")) %>%
+  ggplot(aes(brood_year,length)) + 
+  facet_wrap(~fage,drop = FALSE,scales="free_y",ncol=2,dir="v") + 
+  stat_smooth(aes(linetype=sexna,color=sexna),se=FALSE) + 
+  stat_smooth(aes(linetype=sexna,color=sexna),se=FALSE,method="lm") + 
+  ylab("Length (mm)") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5),
+        legend.title=element_blank(),
+        legend.position=c(0.65,0.25)) + 
+  scale_x_continuous(breaks=seq(1977,2011),
+                     labels=c("1977","","","","1981","","","","1985","","","","1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","",""))
+```
+
+
+```{r,numbers_of_fish_unuk,fig.cap="Compare length at age by sex (i.e., lpw fish) with non-lpw fish, for which sex is not known."}
+tally(spawn2 %>% 
+        filter(stock=="UNUK R") %>% 
+        group_by(sexna,fage,brood_year)) %>% 
+  ungroup %>% 
+  mutate(sexna=fct_recode(sexna,"Males"="M","Females"="F","No sex ID"="N")) %>% 
+  ggplot(aes(factor(brood_year),n,fill=factor(sexna))) + 
+  geom_bar(stat="identity") + 
+  facet_wrap(~fage,ncol=1)  + 
+  scale_fill_viridis(discrete=TRUE) + 
+  ylab("Number of fish") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5),
+        legend.title=element_blank(),
+        legend.position=c(0.5,0.9))
+```
+
+
+```{r,numbers_of_fish_chick,fig.cap="Compare length at age by sex (i.e., lpw fish) with non-lpw fish, for which sex is not known."}
+tally(spawn2 %>% 
+        filter(stock!="UNUK R") %>% 
+        group_by(sexna,fage,brood_year)) %>% 
+  ungroup %>% 
+  mutate(sexna=fct_recode(sexna,"Males"="M","Females"="F","No sex ID"="N")) %>% 
+  ggplot(aes(factor(brood_year),n,fill=factor(sexna))) + 
+  geom_bar(stat="identity") + 
+  facet_wrap(~fage,ncol=1)  + 
+  scale_fill_viridis(discrete=TRUE) + 
+  ylab("Number of fish") + 
+  xlab("Brood Year") + 
+  theme_bw()  + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5),
+        legend.title=element_blank(),
+        legend.position=c(0.5,0.9))
+```
+
+
+\pagebreak
+
+
+
+
+```{r agestructure by brood year,fig.cap="Stock proportion by age class and brood year. Note that no year class existed for brood year 2000."}
+tempdat <- spawn %>% 
+  mutate(sex=fct_recode(sex,"Male"="M",
+                        "Female"="F"),
+         fage=fct_recode(as.factor(age),"2-Ocean"="4","3-Ocean"="5","4-Ocean"="6"),
+         agesex=paste(sex,fage,sep="; "),
+         agesex=fct_expand(factor(agesex),"Female; 2-Ocean"),
+         agesex=fct_relevel(agesex,"Male; 2-Ocean","Male; 3-Ocean","Male; 4-Ocean","Female; 2-Ocean")) %>% 
+group_by(sex,brood_year,stock) %>% 
+  summarise(`2-Ocean`=length(age[age==4])/n(),
+            `3-Ocean`=length(age[age==5])/n(),
+            `4-Ocean`=length(age[age==6])/n()) %>% 
+  gather(age,value,-brood_year,-sex,-stock) %>% 
+  data.frame %>% 
+  right_join(expand.grid(brood_year=unique(.$brood_year),
+                         sex=c("Male","Female"),
+                         age=c("2-Ocean","3-Ocean","4-Ocean"))) %>% 
+  mutate(agesex=paste(sex,age,sep="; "),
+         agesex=fct_expand(factor(agesex),"Female; 2-Ocean"),
+         agesex=fct_relevel(agesex,"Male; 2-Ocean","Male; 3-Ocean","Male; 4-Ocean","Female; 2-Ocean"))
+
+
+p <- tempdat %>% 
+  ggplot(aes(brood_year,value)) + 
+  geom_line() + 
+  geom_point() + 
+  facet_wrap(~agesex,ncol=2,dir="v",drop=FALSE) + 
+  theme_bw() + 
+  xlab("Brood Year") + 
+  ylab("Proportion of return") + 
+  scale_fill_viridis(discrete=TRUE,name="") + 
+  scale_x_continuous(breaks=seq(1977,2011),
+                     labels=c("1977","","","","1981","","","","1985","","","","1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","","")) + 
+  theme(axis.text.x = element_text(angle = 90,size=8,vjust=0.5)) 
+
+g <- ggplotGrob(p)
+# get the grobs that must be removed
+rm_grobs <- g$layout$name %in% c("panel-2-2", "strip-t-2-1")
+# remove grobs
+g$grobs[rm_grobs] <- NULL
+g$layout <- g$layout[!rm_grobs, ]
+## move axis closer to panel
+graphics.off()
+g$layout[g$layout$name == "axis-b-1-2", c("t", "b")] = c(9, 9)
+#  If you don't use scales=free_y in the facet, you'll want this.
+#g$layout[g$layout$name == "axis-l-2-1", c("l", "r")] = c(7, 7)
+grid.newpage()
+grid.draw(g)
+
+
+
+
+
+x11();tempdat %>% 
+  filter(brood_year<2013) %>% 
+  ggplot(aes(brood_year,value,fill=age)) + 
+  geom_bar(stat="identity") + 
+  facet_wrap(~sex) + 
+  theme_bw() + 
+  xlab("Brood Year") + 
+  ylab("Proportion of return") + 
+  scale_fill_viridis(discrete=TRUE,name="") + 
+  scale_x_continuous(breaks=seq(1983,2011),
+                     labels=c("","1984","","","","1988","","","","1992","","","","1996","","","","2000","","","","2004","","","","2008","","",""))+ 
+  geom_hline(yintercept=0.05)
+#dev.off()
+```
+
+\pagebreak
+
+```{r, beta_regression}
+
+data("GasolineYield", package = "betareg")
+gy_logit <- betareg(yield ~ batch + temp, data = GasolineYield)
+gy_loglog <- betareg(yield ~ batch, data = GasolineYield, link = "loglog")
+
+summary(gy_logit)
+summary(gy_loglog)
+
+
+par(mfrow=c(2,2))
+plot(gy_logit)
+plot(gy_loglog)
+
+mystock <- "UNUK R"
+b1 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="2-Ocean" & sex=="Male" & value>0 & stock==mystock))
+b2 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="3-Ocean" & sex=="Male" & value>0 & stock==mystock))
+b3 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="4-Ocean" & sex=="Male" & value>0 & stock==mystock))
+b4 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="3-Ocean" & sex=="Female" & value>0 & stock==mystock))
+b5 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="4-Ocean" & sex=="Female" & value>0 & stock==mystock))
+
+summary(b1)
+summary(b2)
+summary(b3)
+summary(b4)
+summary(b5)
+
+par(mfrow=c(2,2));plot(b1)
+par(mfrow=c(2,2));plot(b2)
+par(mfrow=c(2,2));plot(b3)
+par(mfrow=c(2,2));plot(b4)
+par(mfrow=c(2,2));plot(b5)
+
+b4 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="3-Ocean" & sex=="Female" & value>0 & stock==mystock & brood_year>1978))
+summary(b4)
+sapply(c("logit", "probit", "cloglog", "cauchit", "loglog"),function(x) logLik(update(b4, link = x)))
+
+
+
+```
+
+
+
+
+Look at the trends in key age classes over time. 
+There appears to have been a relatively high degree of variability in female sizes in the earlier years of the dataset, whereas more recently, that has disappeared. There does not appear to be a trend in the mean over time per say. 
+
+We fit some basic AR1 time series processes to the data as well, but there wasn't a significant relationship at a lag of 1 (or any other). We would not necessarily expect age-structure to be temporally autocorrelated but visually it seemed that this may have been the case so we checked. 
+
+Visually, it appears that males have more variability in age-structure over time than females. 
+```{r age structure brood year2, fig.cap="Stock proportion by age class and brood year. Note that no year class existed for brood year 2000."}
+#png("Figures/AgeStructure_BY_Line.png",width=10,height=7.5,units="in",res=300)
+x11();tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 4","Age 5","Age 6")) %>% 
+  ggplot(aes(brood_year,value)) + 
+  geom_line() + 
+  facet_wrap(~sex+age) + 
+  geom_point() + 
+  ggtitle("Brood year") + 
+  theme_bw() + 
+  xlab("Brood Year") + 
+  ylab("Proportion of return")
+
+dat <- tempdat %>% 
+  data.frame %>% 
+  mutate(age=ifelse(sex=="Male" & as.character(age)=="Age 4","Age 5",as.character(age)),
+         concat=paste0(sex,age)) %>% 
+group_by(brood_year,age,sex) %>% 
+  summarise(newvalue=sum(value,na.rm=TRUE)) %>% 
+
+
+cor(dat$value[dat$sex=="Male" & dat$age=="Age 6" & !is.na(dat$value)],
+    dat$value[dat$sex=="Female" & dat$age=="Age 6" & !is.na(dat$value)])
+
+cor(dat$value[dat$sex=="Male" & dat$age=="Age 5" & !is.na(dat$value)],
+    dat$value[dat$sex=="Female" & dat$age=="Age 5" & !is.na(dat$value)])
+
+p1 <- ggplot() + 
+  geom_line(data=dat %>% filter(sex=="Male" & age=="Age 6"),aes(brood_year,newvalue),linetype=2) + 
+  geom_line(data=dat %>% filter(sex=="Female" & age=="Age 6"),aes(brood_year,newvalue),linetype=1) + theme_bw() + ggtitle("Age 6")
+  
+p2 <- ggplot() + 
+  geom_line(data=dat %>% filter(sex=="Male" & age=="Age 5"),aes(brood_year,newvalue),linetype=2) + 
+  geom_line(data=dat %>% filter(sex=="Female" & age=="Age 5"),aes(brood_year,newvalue),linetype=1) + theme_bw() + ggtitle("Age 5")
+
+x11();grid.arrange(p1,p2)  
+
+newt
+
+
+
+
++ 
+  scale_x_continuous(breaks=seq(197,2011),
+                     labels=c("","1984","","","","1988","","","","1992","","","","1996","","","","2000","","","","2004","","","","2008","","","")) + 
+  theme(axis.text.x = element_text(vjust=0.5,angle = 90))
+
+x11();tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & brood_year<2009 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6")) %>% 
+  ggplot(aes(brood_year,value)) + 
+  facet_wrap(~sex+age,scales="free") + 
+  ggtitle("Brood year") + 
+  geom_smooth(se=FALSE) + 
+  geom_smooth(method="lm",se=FALSE) + 
+  theme_bw() + 
+  xlab("Brood Year") + 
+  ylab("Proportion of return") + 
+  scale_x_continuous(breaks=seq(1983,2011),
+                     labels=c("","1984","","","","1988","","","","1992","","","","1996","","","","2000","","","","2004","","","","2008","","","")) + 
+  theme(axis.text.x = element_text(vjust=0.5,angle = 90))
+
+thresh1 <- tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & brood_year<2000 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6"))  
+
+thresh2 <- tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & brood_year>=2000 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6"))
+  
+x11();tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & brood_year<2009 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6")) %>% 
+  ggplot(aes(brood_year,value)) + 
+  facet_wrap(~sex+age,scales="free") + 
+  ggtitle("Brood year") + 
+  geom_smooth(data=thresh1,method="lm",se=FALSE) + 
+  geom_smooth(data=thresh2,method="lm",se=FALSE) + 
+  theme_bw() + 
+  xlab("Brood Year") + 
+  ylab("Proportion of return") + 
+  scale_x_continuous(breaks=seq(1983,2011),
+                     labels=c("","1984","","","","1988","","","","1992","","","","1996","","","","2000","","","","2004","","","","2008","","","")) + 
+  theme(axis.text.x = element_text(vjust=0.5,angle = 90))
+
+
+tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & brood_year<2008 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6")) %>% 
+  data.frame %>% 
+  group_by(sex,age) %>% 
+  do(glance(lm(value~brood_year,data=.)))
+
+d1 <- tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & brood_year<2008 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6")) %>% 
+  data.frame
+
+d1 %>% 
+  group_by(sex,age) %>% 
+  do(augment(gam(value~s(brood_year),data=.)))
+
+summary(gam(value~s(brood_year),data=d1 %>% filter(sex=="Female" & age=="Age 5")))
+
+#dev.off()
+```
+
+\pagebreak
+
+Correlations between each of the year classes for males were really that strong. Most striking was perhaps the utter lack of correlation between ages 5 and 6, suggesting that perhaps fish aren't trading off betweeen 5 and 6 as much as they are between 4 and 6 or 4 and 5 (though that wording sounds perhaps a bit anthropomorphized).
+
+```{r,echo=TRUE}
+cor(tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 3" & !is.na(tempdat$value)],
+    tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 4" & !is.na(tempdat$value)])
+cor(tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 3" & !is.na(tempdat$value)],
+    tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 5" & !is.na(tempdat$value)])
+cor(tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 3" & !is.na(tempdat$value)],
+    tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 6" & !is.na(tempdat$value)])
+
+cor(tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 4" & !is.na(tempdat$value)],
+    tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 5" & !is.na(tempdat$value)])
+cor(tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 4" & !is.na(tempdat$value)],
+    tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 6" & !is.na(tempdat$value)])
+
+cor(tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 5" & !is.na(tempdat$value)],
+    tempdat$value[tempdat$sex=="Male" & tempdat$age=="Age 6" & !is.na(tempdat$value)])
+```
+
+\pagebreak
+
+The smoothed scatterplots of age structure above really emphasize the lack of a real trend in age structure over time. The regressions below illustrate the danger that could be made by trying to force a trend. If we look at a regression of age-structure by brood year over time for the females, we see a linear regression that suggests an overall decrease in age over time (about a 1.5% decline in average age of fish per year). However, we could do a step regression before and after 2000, which appears to be an inflection point, and we would see approximately a 1% decrease per year prior to 2000 and a 1% increase per year after 2000. Prior to 2000, there appears to be a more variable age structure, with a variance in the proportion of age 5 females going from 0.2 prior to 2000 to 0.005 proceeding 2000). The size of returns or broods may be a relevant path of future consideration. 
+
+For regressions by sex, we include only age classes that accounted for at least 5% of the brood in one year. This leaves 5 and 6s only for females and all but 7s for males.
+
+In the regressions below, the "estimate" value is the linear model slope value in units of "proportion." In the paragraph above, I referred to regression results in terms of percents, so you could just multiply the "estimate" value by 100. I've omitted regression results for the males because they just weren't interesting. 
+
+```{r age structure regression brood year,echo=TRUE}
+#  For females regress only ages 5 and 6
+#  All brood years (since 1983)
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & brood_year<2011) %>% 
+  do(tidy(lm(age~brood_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & brood_year<2011) %>% 
+  do(tidy(mk.test(.$age)))
+
+
+#  Pre-2000
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & brood_year<2011) %>% 
+  do(tidy(lm(age~brood_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & brood_year<2011) %>% 
+  do(tidy(mk.test(.$age)))
+
+# Post 2000
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & brood_year>2000 & brood_year<2011) %>% 
+  do(tidy(lm(age~brood_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & brood_year>2000 & brood_year<2011) %>% 
+  do(tidy(mk.test(.$age)))
+
+
+#  Variance of pre and post-2000 brood year proportions of age 5 females.
+var((tempdat %>% filter(sex=="Female" & age=="Age 5" & brood_year<2000))$value)
+var((tempdat %>% filter(sex=="Female" & age=="Age 5" & brood_year>2000 & brood_year<2011))$value)
+
+```
+
+\pagebreak
+
+Note that 1989 does not have any age 7 fish because of the way we filtered the data, starting with brood year 1983. Seeemed better to include this year for the sake of the 3-6 year olds but note that the distribution is not technically complete here. 
+
+```{r age structure by run year,fig.cap="Stock proportion by age class and run year. Note that no year class existed for brood year 2000."}
+tempdat <- spawn2 %>% 
+  filter(!is.na(sex) & run_year<2014 & run_year>1988) %>% 
+  group_by(run_year,sex) %>% 
+  summarise(`Age 3`=length(age[age==3])/n(),
+            `Age 4`=length(age[age==4])/n(),
+            `Age 5`=length(age[age==5])/n(),
+            `Age 6`=length(age[age==6])/n(),
+            `Age 7+`=length(age[age>=7])/n()) %>% 
+  gather(age,value,-run_year,-sex)
+
+tempdat <- tempdat %>% 
+  right_join(expand.grid(run_year=c(unique(tempdat$run_year)),
+                         sex=c("M","F"),
+                         age=c("Age 3","Age 4","Age 5","Age 6","Age 7+"))) %>% 
+  mutate(sex=fct_recode(sex,"Male"="M",
+                        "Female"="F"),
+         age=fct_relevel(age,"Age 7+","Age 6","Age 5","Age 4","Age 3"))
+
+#png("Figures/AgeStructure_RunYear_Barplot.png",width=10,height=7.5,units="in",res=300)
+tempdat %>% 
+  filter(run_year<2014) %>% 
+  ggplot(aes(run_year,value,fill=age)) + 
+  geom_bar(stat="identity") + 
+  facet_wrap(~sex) + 
+  theme_bw() + 
+  xlab("Run Year") + 
+  ylab("Proportion of return") + 
+  scale_fill_viridis(discrete=TRUE,name="") + 
+  scale_x_continuous(breaks=seq(1989,2017),
+                     labels=c("1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","","","","2013","","","","2017"))
+#dev.off()
+```
+
+\pagebreak
+
+Similar to the distributions by brood year, we see variability in the age-structure by run year over time but not the most convincing trend. The loess smoothers illustrate this point by showing what looks like a relaxing of the overall mean increase per year during the middle time period. 
+
+```{r age structure run year2,fig.cap="Stock proportion by age class and run year. Note that no year class existed for brood year 2000."}
+#png("Figures/AgeStructure_RunYear_Scatter.png",width=10,height=7.5,units="in",res=300)
+tempdat %>% 
+  mutate(concat=paste0(sex,age)) %>% 
+  filter(age!="Age 7+" & run_year<2017 & concat!="FemaleAge 3" & concat!="FemaleAge 4") %>% 
+  mutate(age=fct_relevel(age,"Age 3","Age 4","Age 5","Age 6")) %>% 
+  ggplot(aes(run_year,value)) + 
+  geom_line() + 
+  facet_wrap(~sex+age) + 
+  geom_point() + 
+  geom_smooth() + 
+  theme_bw() + 
+  xlab("Run Year") + 
+  ylab("Proportion of return") + 
+  scale_x_continuous(breaks=seq(1989,2017),
+                     labels=c("1989","","","","1993","","","","1997","","","","2001","","","","2005","","","","2009","","","","2013","","","","2017")) + 
+  theme(axis.text.x = element_text(vjust=0.5,angle = 90))
+#dev.off()
+```
+
+\pagebreak
+
+So what do the numbers say? Run year regressions show a 1.2% decrease in age per year for females 5-6. If we break the regression down on either side of brood year 2000 (which corresponds to run year 2006), we see a significant decline in age (1.2% per year) prior to run year 2007 and no significant trend since then for the same females. 
+
+For males, we see an overall though very slight decrease in age (0.1% per year) across all years. Prior to 2007 run year, there is no significant change and since 2007, there is a 2% per year (significant) decline. 
+
+```{r age structure regression run year}
+#  For females regress only ages 5 and 6
+#  All run years (1989-2013)
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7)) %>% do(tidy(lm(age~run_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+#  Pre-2000
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & run_year<2007) %>% 
+  do(tidy(lm(age~run_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+# Post 2000
+spawn2 %>% 
+  filter(sex=="F" & !age%in%c(3,4,7) & run_year>2007) %>% 
+  do(tidy(lm(age~run_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+
+#  All run years (1989-2013)
+spawn2 %>% 
+  filter(sex=="M" & !age%in%c(3,4,7)) %>% do(tidy(lm(age~run_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+#  Pre-2000
+spawn2 %>% 
+  filter(sex=="M" & !age%in%c(7) & run_year<2007) %>% 
+  do(tidy(lm(age~run_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+
+# Post 2000
+spawn2 %>% 
+  filter(sex=="M" & !age%in%c(7) & run_year>2007) %>% 
+  do(tidy(lm(age~run_year,data=.))) %>% 
+  filter(term!="(Intercept)") %>% 
+  mutate(estimate=round(estimate,4))
+```
