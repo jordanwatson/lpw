@@ -14,6 +14,7 @@ library(ggridges)
 library(tidybayes)
 library(tidyselect)
 library(scales)
+library(visreg)
 
 # ----------------------------------------------------------------------------------------------------
 #  Compile all recoveries for LPW
@@ -886,78 +887,31 @@ gam.output %>%
   write.csv("GAM_GLM_Compare.csv")
  
 
-mdat %>% 
-  nest(-c(agesex,stock)) %>% 
-  mutate(fit = map(data, ~gamm(length ~ s(brood_year), data = .,correlation=corAR1(form=~brood_year))))
-
+#  Opted to not include GAMMs because the Chickamin data had too many missing years.
 #  Examine autocorrelated GAMMs also
-#  First Unuk
-gamm1 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.2" & stock=="Unuk"),correlation=corAR1())
-gamm1arma <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.2" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
+gamm1 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.2" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
 gamm2 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.3" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
 gamm3 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.4" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
 gamm4 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.2" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
+#  Note: had to increase memory.limit to 16000 for the female 1.3 Unuk
 gamm5 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.3" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
 gamm6 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.4" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
-#  Now Chickamin
-gamm7 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.2" & stock!="Unuk"),correlation=corARMA(p=1,q=0))
-gamm8 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.3" & stock!="Unuk"),correlation=corARMA(p=1,q=0))
-gamm9 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.4" & stock!="Unuk"),correlation=corARMA(p=1,q=0))
-gamm10 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.2" & stock!="Unuk"),correlation=corARMA(p=1,q=0))
-gamm11 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.3" & stock!="Unuk"),correlation=corARMA(p=1,q=0))
-gamm12 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.4" & stock!="Unuk"),correlation=corARMA(p=1,q=0))
 
 
-
-#old version backup
-gamm2 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.3" & stock=="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam2,gamm2$lme)
-gamm3 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.4" & stock=="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam3,gamm3$lme)
-gamm4 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.2" & stock=="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam4,gamm4$lme)
-gamm5 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.3" & stock=="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam4,gamm4$lme)
-gamm6 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.4" & stock=="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam5,gamm5$lme)
-#  Now Chickamin
-gamm7 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.2" & stock!="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam6,gamm6$lme)
-gamm8 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.3" & stock!="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam7,gamm7$lme)
-gamm9 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.4" & stock!="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam8,gamm8$lme)
-gamm10 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.2" & stock!="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam9,gamm9$lme)
-gamm11 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.3" & stock!="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam9,gamm9$lme)
-gamm12 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.4" & stock!="Unuk"),correlation=corARMA(form=~brood_year,p=1,q=0));AIC(gam10,gamm10$lme)
-
-gm1 <- summary(gamm1)
-gm2 <- summary(gamm2)
-gm3 <- summary(gamm3)
-gm4 <- summary(gamm4)
-gm5 <- summary(gamm5)
-gm6 <- summary(gamm6)
-gm7 <- summary(gamm7)
-gm8 <- summary(gamm8)
-gm9 <- summary(gamm9)
-gm10 <- summary(gamm10)
-
-# GAM beat out an autocorrelated GAMM based on AIC in all cases. Note that this is only for Unuk. 
-# Chickamin had too many missing years to conduct GAMM with ARMA
-
-gam.out <- mdat %>% 
-  group_by(agesex) %>% 
-  do(tidy(gam(length~s(brood_year),data=.))) %>% 
-  inner_join(data.frame(agesex=unique(mdat$agesex),
-                        dev.expl=c(g1$dev.expl,g2$dev.expl,g3$dev.expl,g4$dev.expl,g5$dev.expl,
-                                   g6$dev.expl,g7$dev.expl,g8$dev.expl,g9$dev.expl,g10$dev.expl),
-                        stock=c(rep("Unuk",5),rep("Chickamin",5)))) %>% 
-  dplyr::select(-term,-ref.df,-statistic) %>% 
-  mutate(dev.expl=100*dev.expl) %>% 
-  mutate_if(is.numeric,round,3) %>% 
-  arrange(stock,agesex) %>% 
-  mutate(p.gam=ifelse(p.value>0,as.character(p.value),"<0.001")) %>% 
-  dplyr::select(-p.value,Stock=stock)
-
+gam.output %>% 
+  inner_join(glm.output) %>% 
+  left_join(data.frame(agesex=c(paste("Male",seq(1.2,1.4,by=0.1),sep="; "),
+                    paste("Female",seq(1.2,1.4,by=0.1),sep="; ")),
+           stock="Unuk",
+           AIC_gamm=c(AIC(gamm1$lme),AIC(gamm2$lme),AIC(gamm3$lme),AIC(gamm4$lme),AIC(gamm5$lme),AIC(gamm6$lme))))
+             
 
 
 
 
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
-#  Set-up age regressions
+#  Age regressions
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
 
@@ -980,7 +934,8 @@ p <- recoverdat %>%
          agesex=fct_expand(factor(agesex),"Female; 1.2"),
          agesex=fct_relevel(agesex,"Male; 1.2","Male; 1.3","Male; 1.4","Female; 1.2"),
          value=ifelse(value==0,0.00001,value),
-         value=ifelse(value==1,0.99999,value))
+         value=ifelse(value==1,0.99999,value)) %>% 
+  filter(!is.na(value))
 
 
 ## Stacked area plot for size at age by stock and sex
@@ -1005,57 +960,130 @@ p %>%
 dev.off()
 
 
-
 #----------------------------------------------------------------------
 #beta_regression_age_at_return_Unuk
 
 
 #  To find the best fit for each age and sex, I iterated through each of the possible link functions. Only 1.4 males showed
 #  any difference among link functions for the Unuk. 
-mybetafitfun <- function(mystock,myage,mysex){
+mybetafitfun <- function(tempdat,mystock,myage,mysex){
   betamodel <- betareg(value ~ brood_year, data = tempdat %>% filter(age==myage & sex==mysex & stock==mystock))
   sapply(c("logit", "probit", "cloglog", "loglog"),function(x) AIC(update(betamodel, link = x)))
 }
 
-#  For the females, there are only two age classes of proportion data, which means that the age classes yield results that 
-#  are simply inverses of each other. For the models we only fit the 1.3 females, understanding that the results will be equal
-#  but with opposite sign for the 1.4 females.
-
+#  This function explores model fits across the different link functions. There was only >1 AIC unit difference for the 1.2 Chickamin males.
+#  This group fit slightly better with log-log link. So I'll use that for all fits.
 bind_rows(
-  mybetafitfun("Unuk","1.2","Male"),
-  mybetafitfun("Unuk","1.3","Male"),
-  mybetafitfun("Unuk","1.4","Male"),
-  mybetafitfun("Unuk","1.3","Female"),
-  mybetafitfun("CHICKAMIN R","1.2","Male"), #loglog
-  mybetafitfun("CHICKAMIN R","1.3","Male"), #no difference
-  mybetafitfun("CHICKAMIN R","1.4","Male"), #cloglog
-  mybetafitfun("CHICKAMIN R","1.3","Female") #no difference
+  mybetafitfun(p,"Unuk","1.2","Male"),
+  mybetafitfun(p,"Unuk","1.3","Male"),
+  mybetafitfun(p,"Unuk","1.4","Male"),
+  mybetafitfun(p,"Unuk","1.2","Female"),
+  mybetafitfun(p,"Unuk","1.3","Female"),
+  mybetafitfun(p,"Unuk","1.4","Female"),
+  mybetafitfun(p,"Chickamin","1.2","Male"), #loglog
+  mybetafitfun(p,"Chickamin","1.3","Male"), 
+  mybetafitfun(p,"Chickamin","1.4","Male"), 
+  mybetafitfun(p,"Chickamin","1.2","Female"), 
+  mybetafitfun(p,"Chickamin","1.3","Female"),
+  mybetafitfun(p,"Chickamin","1.4","Female")
 )
 
-#  Fit and save each of the models with their specified link function in order to examine residual plots
-u1 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.2" & sex=="Male" & stock=="Unuk"))
-u2 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.3" & sex=="Male" & stock=="Unuk"))
-u3 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.4" & sex=="Male" & stock=="Unuk"))
-u4 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.3" & sex=="Female" & stock=="Unuk"))
-c1 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.2" & sex=="Male" & stock=="CHICKAMIN R"),link="loglog")
-c2 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.3" & sex=="Male" & stock=="CHICKAMIN R"))
-c3 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.4" & sex=="Male" & stock=="CHICKAMIN R"),link="cloglog")
-c4 <- betareg(value ~ brood_year, data = tempdat %>% filter(age=="1.3" & sex=="Female" & stock=="CHICKAMIN R"))
+# examine residual plots
+par(mfrow=c(2,2))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.2" & sex=="Male" & stock=="Unuk"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.3" & sex=="Male" & stock=="Unuk"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.4" & sex=="Male" & stock=="Unuk"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.3" & sex=="Female" & stock=="Unuk"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.2" & sex=="Male" & stock=="Chickamin"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.3" & sex=="Male" & stock=="Chickamin"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.4" & sex=="Male" & stock=="Chickamin"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.3" & sex=="Female" & stock=="Chickamin"),link="loglog"))
 
-#  For inspecting residuals
-par(mfrow=c(2,2));plot(u1)
-par(mfrow=c(2,2));plot(u2)
-par(mfrow=c(2,2));plot(u3)
-par(mfrow=c(2,2));plot(u4)
-par(mfrow=c(2,2));plot(c1)
-par(mfrow=c(2,2));plot(c2)
-par(mfrow=c(2,2));plot(c3)
-par(mfrow=c(2,2));plot(c4)
 
 #  If we do polynomial regression instead of univariate, the R^2 increases but the AICs select the univariate instead due to the 
 #  extra parameter penalty. So I just stick with univariate brood_year model here.
+
+
+# Plot ACF (autocorrelation function) to examine independence of model residuals for beta regression. 
+# Does not appear to be any significant temporal autocorrelation
+mybetaacfplotfun <- function(mystock,myage,mysex,linkf){
+  mydat <- p %>% filter(age==myage & sex==mysex & stock==mystock)
+  acf(resid(betareg(value ~ brood_year, data = mydat,link="loglog")))
+}
+
+mybetaafplotfun("Unuk","1.2","Male","cloglog")
+mybetaafplotfun("Unuk","1.3","Male","cloglog")
+mybetaafplotfun("Unuk","1.4","Male","cloglog")
+mybetaafplotfun("Unuk","1.2","Female","cloglog")
+mybetaafplotfun("Unuk","1.3","Female","cloglog")
+mybetaafplotfun("Unuk","1.4","Female","cloglog")
+mybetaafplotfun("Chickamin","1.2","Male","cloglog") 
+mybetaafplotfun("Chickamin","1.3","Male","cloglog") 
+mybetaafplotfun("Chickamin","1.4","Male","cloglog") 
+mybetaafplotfun("Chickamin","1.2","Female","cloglog") 
+mybetaafplotfun("Chickamin","1.3","Female","cloglog") 
+mybetaafplotfun("Chickamin","1.4","Female","cloglog") 
+
+
+#-----------------------------------------------------------------------------
+#  Explore beta-distibuted GAMs
+#-----------------------------------------------------------------------------
+
+#  Identify the best link function for the beta gams. 
+#  Chickamin 4 ocean males are the only one for which a difference appears
+mybetagamfitfun <- function(mystock,myage,mysex){
+  mydat <- p %>% filter(age==myage & sex==mysex & stock==mystock)
+  return(c(AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat)),
+    AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
+    AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
+    AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
+}
+
+#  Link function didn't matter across model types
+mybetagamfitfun("Unuk","1.2","Male")
+mybetagamfitfun("Unuk","1.3","Male")
+mybetagamfitfun("Unuk","1.4","Male")
+mybetagamfitfun("Unuk","1.2","Female")
+mybetagamfitfun("Unuk","1.3","Female")
+mybetagamfitfun("Unuk","1.4","Female")
+mybetagamfitfun("Chickamin","1.2","Male")
+mybetagamfitfun("Chickamin","1.3","Male")
+mybetagamfitfun("Chickamin","1.4","Male")
+mybetagamfitfun("Chickamin","1.2","Female")
+mybetagamfitfun("Chickamin","1.3","Female")
+mybetagamfitfun("Chickamin","1.4","Female") 
+
+#-----------------------------------------------------------------------------
+#  Compare model fits via AIC for beta regression versus beta-distributed GAMs
+#-----------------------------------------------------------------------------
+
+#  Print AIC and dfs for each of the different models
+mybetagamplotfun <- function(mystock,myage,mysex,linkf){
+  mydat <- p %>% filter(age==myage & sex==mysex & stock==mystock)
+  print(AIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
+        betareg(value ~ brood_year, data = mydat,link="loglog")))
+  print(BIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
+            betareg(value ~ brood_year, data = mydat,link="loglog")))
+}
+
+mybetagamplotfun("Unuk","1.2","Male","cloglog")
+mybetagamplotfun("Unuk","1.3","Male","cloglog")
+mybetagamplotfun("Unuk","1.4","Male","cloglog")
+mybetagamplotfun("Unuk","1.2","Female","cloglog")
+mybetagamplotfun("Unuk","1.3","Female","cloglog")
+mybetagamplotfun("Unuk","1.4","Female","cloglog")
+mybetagamplotfun("Chickamin","1.2","Male","cloglog") # AIC less for beta regression (5 AIC units)
+mybetagamplotfun("Chickamin","1.3","Male","cloglog") 
+mybetagamplotfun("Chickamin","1.4","Male","cloglog") 
+mybetagamplotfun("Chickamin","1.2","Female","cloglog") 
+mybetagamplotfun("Chickamin","1.3","Female","cloglog") 
+mybetagamplotfun("Chickamin","1.4","Female","cloglog") 
+
+#  This comparison via AIC and BIC suggests the beta regression (based on a delta AIC / delta BIC of at least 2 units) is not different
+#  than the beta GAM with the exception of Chickamin 1.2 males. So we go with the simple beta regression
+
 mybetafun <- function(mystock,myage,mysex,mylink){
-  betamodel <- betareg(value ~ brood_year, data = tempdat %>% filter(age==myage & sex==mysex & stock==mystock),link=mylink)
+  betamodel <- betareg(value ~ brood_year, data = p %>% filter(age==myage & sex==mysex & stock==mystock),link=mylink)
   mydat <- as.data.frame(coef(summary(betamodel)))[2,1:6]
   names(mydat) <- c("Estimate","SE","Z stat","P","Phi","Phi SE")
   return(bind_cols(data.frame(stock=mystock,
@@ -1072,79 +1100,24 @@ mybetafun <- function(mystock,myage,mysex,mylink){
            dplyr::select(-Phi,-`Phi SE`))
 }
 
-bind_rows(
-  mybetafun("Unuk","1.2","Male","logit"),
-  mybetafun("Unuk","1.3","Male","logit"),
-  mybetafun("Unuk","1.4","Male","logit"),
-  mybetafun("Unuk","1.3","Female","logit"),
-  mybetafun("CHICKAMIN R","1.2","Male","loglog"),
-  mybetafun("CHICKAMIN R","1.3","Male","logit"),
-  mybetafun("CHICKAMIN R","1.4","Male","cloglog"),
-  mybetafun("CHICKAMIN R","1.3","Female","logit")) %>% 
+betaregout <- bind_rows(
+  mybetafun("Unuk","1.2","Male","loglog"),
+  mybetafun("Unuk","1.3","Male","loglog"),
+  mybetafun("Unuk","1.4","Male","loglog"),
+  mybetafun("Unuk","1.2","Female","loglog"),
+  mybetafun("Unuk","1.3","Female","loglog"),
+  mybetafun("Unuk","1.4","Female","loglog"),
+  mybetafun("Chickamin","1.2","Male","loglog"),
+  mybetafun("Chickamin","1.3","Male","loglog"),
+  mybetafun("Chickamin","1.4","Male","cloglog"),
+  mybetafun("Chickamin","1.2","Female","loglog"),
+  mybetafun("Chickamin","1.3","Female","loglog"),
+  mybetafun("Chickamin","1.4","Female","loglog")) %>% 
   arrange(stock) %>% 
-  mutate(Stock=ifelse(stock=="Unuk","Unuk","Chickamin")) %>%
-  dplyr::select(Stock,everything(),-stock) %>% 
-  write_csv("Beta_age_regressions.csv")
+  rename(Stock=stock)
 
-
-#  Identify the best link function for the beta gams. 
-#  Chickamin 4 ocean males are the only one for which a difference appears
-mybetagamfitfun <- function(mystock,myage,mysex){
-  mydat <- tempdat %>% filter(age==myage & sex==mysex & stock==mystock)
-  AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat),
-      gam(value~s(brood_year),family=betar(link="probit"), data = mydat),
-      gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat),
-      gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))
-}
-
-betaout <- bind_rows(
-  mybetagamfitfun("Unuk","1.2","Male"),
-  mybetagamfitfun("Unuk","1.3","Male"),
-  mybetagamfitfun("Unuk","1.4","Male"),
-  mybetagamfitfun("Unuk","1.3","Female"),
-  mybetagamfitfun("CHICKAMIN R","1.2","Male"), 
-  mybetagamfitfun("CHICKAMIN R","1.3","Male"), 
-  mybetagamfitfun("CHICKAMIN R","1.4","Male"), 
-  mybetagamfitfun("CHICKAMIN R","1.3","Female") 
-)
-
-#  When we compare the beta gam and the linear gam, the increased degrees of freedom
-#  cancel out any improvements in fit and the linear models are equal to or better than 
-#  the GAMs in all cases (based on AIC).
-mybetagamfitfun <- function(mystock,myage,mysex,linkf){
-  mydat <- tempdat %>% filter(age==myage & sex==mysex & stock==mystock)
-  AIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
-      gam(value~brood_year,family=betar(link=linkf), data = mydat))
-}
-
-mybetagamfitfun("Unuk","1.2","Male","logit")
-mybetagamfitfun("Unuk","1.3","Male","logit")
-mybetagamfitfun("Unuk","1.4","Male","logit")
-mybetagamfitfun("Unuk","1.3","Female","logit")
-mybetagamfitfun("CHICKAMIN R","1.2","Male","logit") 
-mybetagamfitfun("CHICKAMIN R","1.3","Male","logit") 
-mybetagamfitfun("CHICKAMIN R","1.4","Male","logit") 
-mybetagamfitfun("CHICKAMIN R","1.3","Female","logit") 
-
-mybetagamfitfun <- function(mystock,myage,mysex,linkf){
-  mydat <- tempdat %>% filter(age==myage & sex==mysex & stock==mystock)
-  (gam(value~(brood_year),family=betar(link=linkf), data = mydat))
-}
-
-mybetagamfitfun("Unuk","1.2","Male","logit")
-mybetagamfitfun("Unuk","1.3","Male","logit")
-mybetagamfitfun("Unuk","1.4","Male","logit")
-mybetagamfitfun("Unuk","1.3","Female","logit")
-mybetagamfitfun("CHICKAMIN R","1.2","Male","logit") 
-mybetagamfitfun("CHICKAMIN R","1.3","Male","logit") 
-mybetagamfitfun("CHICKAMIN R","1.4","Male","logit")
-mybetagamfitfun("CHICKAMIN R","1.3","Female","logit") 
-
-
-
-
-
-
+betaregout %>% 
+  write_csv("Manuscript/Beta_age_regressions.csv")
 
 
 #---------------------------------------------------------------------------------------
@@ -1195,16 +1168,250 @@ dev.off()
 
 
 
-my.mod <- function(mystock,myage){
-  print(summary(betareg(survival ~ brood_year, data = surv %>% 
-                          filter(fage==myage & stock==mystock) %>% 
-                          mutate(survival=survival/100))))
+# ----------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
+#  Survival regressions
+# ----------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
+
+
+p <- surv %>% 
+  mutate(value=survival/100)
+
+
+#----------------------------------------------------------------------
+#Survival regression by stock
+
+
+#  To find the best fit for each stock, I iterated through each of the possible link functions. O
+mybetafitfun <- function(tempdat,mystock){
+  betamodel <- betareg(value ~ brood_year, data = tempdat %>% filter(stock==mystock))
+  sapply(c("logit", "probit", "cloglog", "loglog"),function(x) AIC(update(betamodel, link = x)))
 }
 
-my.mod("Unuk","1.2")
-my.mod("Unuk","1.3")
-my.mod("Unuk","1.4")
-my.mod("CHICKAMIN R","1.2")
-my.mod("CHICKAMIN R","1.3")
-my.mod("CHICKAMIN R","1.4")
+#  No difference in link function AIC values.
+bind_rows(
+  mybetafitfun(p,"Unuk"),
+  mybetafitfun(p,"Chickamin")
+)
+
+#
+
+# examine residual plots
+par(mfrow=c(2,2))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Unuk"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Chickamin"),link="loglog"))
+
+
+
+# Plot ACF (autocorrelation function) to examine independence of model residuals for beta regression. 
+# Does not appear to be any significant temporal autocorrelation
+mybetaacfplotfun <- function(mystock,linkf){
+  mydat <- p %>% filter(stock==mystock)
+  acf(resid(betareg(value ~ brood_year, data = mydat,link="loglog")))
+}
+
+mybetaacfplotfun("Unuk","cloglog")
+mybetaacfplotfun("Chickamin","cloglog") 
+
+
+#-----------------------------------------------------------------------------
+#  Explore beta-distibuted GAMs
+#-----------------------------------------------------------------------------
+
+#  Identify the best link function for the beta gams. 
+mybetagamfitfun <- function(mystock){
+  mydat <- p %>% filter(stock==mystock)
+  return(c(AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
+}
+
+#  Link function didn't matter across model types
+mybetagamfitfun("Unuk")
+mybetagamfitfun("Chickamin") 
+
+#-----------------------------------------------------------------------------
+#  Compare model fits via AIC for beta regression versus beta-distributed GAMs
+#-----------------------------------------------------------------------------
+
+#  Print AIC and dfs for each of the different models
+mybetagamplotfun <- function(mystock,linkf){
+  mydat <- p %>% filter(stock==mystock)
+  print(AIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
+            betareg(value ~ brood_year, data = mydat,link="loglog")))
+  print(BIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
+            betareg(value ~ brood_year, data = mydat,link="loglog")))
+}
+
+mybetagamplotfun("Unuk","cloglog")
+mybetagamplotfun("Chickamin","cloglog") 
+
+#  This comparison via AIC and BIC suggests the beta regression (based on a delta AIC / delta BIC of at least 2 units) is not different
+#  than the beta GAM. So we go with the simple beta regression
+
+mybetafun <- function(mystock,mylink){
+  betamodel <- betareg(value ~ brood_year, data = p %>% filter(stock==mystock),link=mylink)
+  mydat <- as.data.frame(coef(summary(betamodel)))[2,1:6]
+  names(mydat) <- c("Estimate","SE","Z stat","P","Phi","Phi SE")
+  return(bind_cols(data.frame(stock=mystock),
+                   mydat,data.frame(pseudo.r.sq=summary(betamodel)$pseudo.r.squared)) %>% 
+           mutate(Estimate=round(Estimate,3),
+                  SE=round(SE,3),
+                  `Z stat`=round(`Z stat`,2),
+                  P=round(P,3),
+                  P=ifelse(P>0,as.character(P),"<0.001"),
+                  `Phi (SE)`=paste(round(Phi,1)," (",round(`Phi SE`,1),")",sep = ""),
+                  pseudo.r.sq=round(pseudo.r.sq,2)) %>% 
+           dplyr::select(-Phi,-`Phi SE`))
+}
+
+betaregout <- bind_rows(
+  mybetafun("Unuk","loglog"),
+  mybetafun("Chickamin","loglog")) %>% 
+  arrange(stock) %>% 
+  rename(Stock=stock)
+
+betaregout %>% 
+  write_csv("Manuscript/Beta_survival_regressions.csv")
+
+
+
+#---------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------
+## Survival regressions by age class
+#---------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------
+
+recovery <- recoverdat %>% 
+  group_by(brood_year,fage,stock) %>% 
+  summarise(est=sum(estimated_number,na.rm=TRUE),
+            age=age[1])
+
+p <- recovery %>% 
+  inner_join(release) %>% 
+  mutate(value=(est/released)) %>% 
+  filter(fage%in%c("1.2","1.3","1.4")) 
+
+
+
+#  To find the best fit for each stock, I iterated through each of the possible link functions. O
+mybetafitfun <- function(tempdat,mystock,myage){
+  betamodel <- betareg(value ~ brood_year, data = tempdat %>% filter(stock==mystock & fage==myage))
+  sapply(c("logit", "probit", "cloglog", "loglog"),function(x) AIC(update(betamodel, link = x)))
+}
+
+#  No difference in link function AIC values.
+bind_rows(
+  mybetafitfun(p,"Unuk","1.2"),
+  mybetafitfun(p,"Unuk","1.3"),
+  mybetafitfun(p,"Unuk","1.4"),
+  mybetafitfun(p,"Chickamin","1.2"),
+  mybetafitfun(p,"Chickamin","1.3"),
+  mybetafitfun(p,"Chickamin","1.4")
+)
+
+#
+
+# examine residual plots
+par(mfrow=c(2,2))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Unuk" & fage=="1.2"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Unuk" & fage=="1.3"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Unuk" & fage=="1.4"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Chickamin" & fage=="1.2"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Chickamin" & fage=="1.3"),link="loglog"))
+plot(betareg(value ~ brood_year, data = p %>% filter(stock=="Chickamin" & fage=="1.4"),link="loglog"))
+
+
+
+# Plot ACF (autocorrelation function) to examine independence of model residuals for beta regression. 
+# Does not appear to be any significant temporal autocorrelation
+mybetaacfplotfun <- function(tempdat,mystock,myage){
+  mydat <- p %>% filter(stock==mystock & fage==myage)
+  acf(resid(betareg(value ~ brood_year, data = mydat,link="logit")))
+}
+
+mybetaacfplotfun(p,"Unuk","1.2")
+mybetaacfplotfun(p,"Unuk","1.3")
+mybetaacfplotfun(p,"Unuk","1.4")
+mybetaacfplotfun(p,"Chickamin","1.2")
+mybetaacfplotfun(p,"Chickamin","1.3")
+mybetaacfplotfun(p,"Chickamin","1.4")
+
+
+#-----------------------------------------------------------------------------
+#  Explore beta-distibuted GAMs
+#-----------------------------------------------------------------------------
+
+#  Identify the best link function for the beta gams. 
+mybetagamfitfun <- function(mystock,myage){
+  mydat <- p %>% filter(stock==mystock & fage==myage)
+  return(c(AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
+}
+
+#  Link function didn't matter across model types
+mybetagamfitfun("Unuk","1.2")
+mybetagamfitfun("Unuk","1.3")
+mybetagamfitfun("Unuk","1.4") # Probit link function fits best
+mybetagamfitfun("Chickamin","1.2") 
+mybetagamfitfun("Chickamin","1.3") 
+mybetagamfitfun("Chickamin","1.4") 
+
+#-----------------------------------------------------------------------------
+#  Compare model fits via AIC for beta regression versus beta-distributed GAMs
+#-----------------------------------------------------------------------------
+
+#  Print AIC and dfs for each of the different models
+mybetagamplotfun <- function(mystock,myage){
+  mydat <- p %>% filter(stock==mystock & fage==myage)
+  print(AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat),
+            betareg(value ~ brood_year, data = mydat,link="probit")))
+  print(BIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat),
+            betareg(value ~ brood_year, data = mydat,link="probit")))
+}
+
+mybetagamplotfun("Unuk","1.2")
+mybetagamplotfun("Unuk","1.3")
+mybetagamplotfun("Unuk","1.4")
+mybetagamplotfun("Chickamin","1.2") 
+mybetagamplotfun("Chickamin","1.3") 
+mybetagamplotfun("Chickamin","1.4") 
+
+#  This comparison via AIC and BIC suggests the beta regression (based on a delta AIC / delta BIC of at least 2 units) is not different
+#  than the beta GAM. So we go with the simple beta regression
+
+mybetafun <- function(mystock,myage,mylink){
+  betamodel <- betareg(value ~ brood_year, data = p %>% filter(stock==mystock & fage==myage),link=mylink)
+  mydat <- as.data.frame(coef(summary(betamodel)))[2,1:6]
+  names(mydat) <- c("Estimate","SE","Z stat","P","Phi","Phi SE")
+  return(bind_cols(data.frame(stock=mystock,
+                              age=myage),
+                   mydat,data.frame(pseudo.r.sq=summary(betamodel)$pseudo.r.squared)) %>% 
+           mutate(Estimate=round(Estimate,3),
+                  SE=round(SE,3),
+                  `Z stat`=round(`Z stat`,2),
+                  P=round(P,3),
+                  P=ifelse(P>0,as.character(P),"<0.001"),
+                  `Phi (SE)`=paste(round(Phi,1)," (",round(`Phi SE`,1),")",sep = ""),
+                  pseudo.r.sq=round(pseudo.r.sq,2)) %>% 
+           dplyr::select(-Phi,-`Phi SE`))
+}
+
+betaregout <- bind_rows(
+  mybetafun("Unuk","1.2","probit"),
+  mybetafun("Unuk","1.3","probit"),
+  mybetafun("Unuk","1.4","probit"),
+  mybetafun("Chickamin","1.2","probit"),
+  mybetafun("Chickamin","1.3","probit"),
+  mybetafun("Chickamin","1.4","probit")) %>% 
+  arrange(stock) %>% 
+  rename(Stock=stock)
+
+betaregout %>% 
+  write_csv("Manuscript/Beta_survival_by_age_regressions.csv")
+
 
