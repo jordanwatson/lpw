@@ -98,7 +98,7 @@ recoverdat <- read_csv("Data/All_Recovery_Estimated_Number.txt") %>%
 #  Stock Location Name
 
 #  We truncated the data at 1981 to remove potential hatchery effects. 
-releasedat <- read_csv("Data/All_releases_1976_through_2019_byYear_byStock.txt") %>% 
+releasedat <- read_csv("Data/All_releases_1976_to_2019_BY_and_Stock.txt") %>% 
   rename(stock=stock_location_name) %>% 
   filter(stock!="KETA R 101-30" & brood_year>=1981) %>% 
   mutate(stock=ifelse(stock=="CHICKAMIN R 101-71","Chickamin","Unuk"))
