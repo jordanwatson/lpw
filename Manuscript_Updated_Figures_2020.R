@@ -8,13 +8,9 @@ library(mgcv)
 library(forcats)
 library(viridis)
 library(trend)
-library(ggthemes)
-library(betareg)
-library(ggridges)
 library(tidybayes)
 library(tidyselect)
 library(scales)
-library(visreg)
 
 # ----------------------------------------------------------------------------------------------------
 #  Compile all recoveries for LPW
@@ -136,9 +132,9 @@ recoverdat %>%
   inner_join(recoverdat %>% 
                mutate(stock=ifelse(stock=="Chickamin","Chick",stock),
                       sex=case_when(
-                 !is.na(sex) & sex=="M"~"Male",
-                 !is.na(sex) & sex=="F"~"Female"),
-                 sex=ifelse(recovery!="LPW",NA,sex)) %>% 
+                        !is.na(sex) & sex=="M"~"Male",
+                        !is.na(sex) & sex=="F"~"Female"),
+                      sex=ifelse(recovery!="LPW",NA,sex)) %>% 
                group_by(brood_year,stock,sex) %>% 
                tally() %>% 
                pivot_wider(values_from=n,
@@ -152,7 +148,7 @@ recoverdat %>%
          Chick_Total=Chick_Marine_Harvest+Chick_LPW) %>% 
   inner_join(surv %>% 
                mutate(stock=ifelse(stock=="Chickamin","Chick",stock),
-                             survival=round(survival,1)) %>% 
+                      survival=round(survival,1)) %>% 
                pivot_wider(values_from= c(survival,released),
                            names_from = c(stock))) %>% 
   select(`Brood Year`=brood_year,
@@ -192,7 +188,7 @@ recoverdat %>%
   select(Chickamin_LPW,`Chickamin_Non-LPW`,Chickamin_Female,Chickamin_Male,Chickamin_NA,survival_Chickamin,released_Chickamin,
          Unuk_LPW,`Unuk_Non-LPW`,Unuk_Female,Unuk_Male,Unuk_NA,survival_Unuk,released_Unuk) %>% 
   write.csv("Manuscript/Table1_summary_updated.csv",row.names=FALSE)
-  
+
 # ----------------------------------------------------------------------------------------------------
 #  Create Figure 2 for manuscript
 #  Summary of recoveries
@@ -238,9 +234,14 @@ surv %>%
               se=F,
               size=0.65) +
   stat_smooth(method="gam",
-              formula=y~s(x),
-              method.args = list(family = betar(link="logit")),
+              formula=y~s(x,bs="tp"),
+              method.args = list(family = betar(link="probit")),
               linetype=1,
+              se=F) +
+  stat_smooth(method="gam",
+              formula=y~s(x,bs="cr"),
+              method.args = list(family = betar(link="probit")),
+              linetype=3,
               se=F) +
   xlab("Brood Year") + 
   ylab("Survival (%)") + 
@@ -267,6 +268,9 @@ survbyagestock <- recovery %>%
   mutate(survivalperc=(est/released)) %>% 
   filter(age<7)
 
+
+
+
 mylab <- seq(0,0.05,by=0.01)
 
 png(file="Manuscript/Figure_4_Survival_age_brood_stock.png",w=6.5,h=6.5,units="in",res=300)
@@ -287,8 +291,8 @@ survbyagestock %>%
               linetype=2,
               se=F,
               size=0.45) +
-  stat_smooth(method="gam",
-              formula=y~s(x),
+  geom_smooth(method="gam",
+              formula=y~s(x,bs="tp"),
               method.args = list(family = betar(link="logit")),
               linetype=1,
               se=F) + 
@@ -304,6 +308,7 @@ dev.off()
 # ----------------------------------------------------------------------------------------------------
 #  Figures 5 and 6. 
 #  Age composition figures
+agecompfigs5and6 <- function(){}
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
 
@@ -391,7 +396,7 @@ myageplot <- function(mystock){
                 method.args = list(family = betar(link="logit")),
                 linetype=1,
                 se=T) +
-  geom_line() + 
+    geom_line() + 
     geom_point() + 
     facet_wrap(~agesex,ncol=2,dir="v",drop=FALSE) + 
     theme_bw() + 
@@ -438,7 +443,11 @@ graphics.off()
 
 # ---------------------------------------------------
 #  Bayesian model - Figure 7
+bayesianmodelfig7 <- function(){}
 # ---------------------------------------------------
+
+#  See model code from lpw_bayesian_final.R
+#  See stan code from compositions_lm_timevarying_AR_EDub.stan
 
 mydf <- rstan::extract(readRDS("Male_15000iter_delta99999_tree20.RDS"))$sd_pro %>% 
   data.frame %>% 
@@ -531,7 +540,7 @@ sddat %>%
 
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
-#  Set-up length regressions
+#  Set-up length figure 8
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
 
@@ -546,14 +555,20 @@ p <- recoverdat %>%
          agesex=paste(sex,fage,sep="; "),
          agesex=fct_expand(factor(agesex),"Female; 1.2"),
          agesex=fct_relevel(agesex,"Male; 1.2","Male; 1.3","Male; 1.4","Female; 1.2"))  #%>% 
-  #filter(agesex!="Female; 1.2")
+#filter(agesex!="Female; 1.2")
 
-test <- mdat %>% 
+final <- mdat %>% 
   mutate(by2=ifelse(stock=="Chickamin",brood_year-0.15,brood_year+0.15)) %>% 
   ggplot(aes(by2,length,color=stock)) +
   geom_point(alpha=0.5,size=0.25) + 
   facet_wrap(~agesex,drop = FALSE,scales="free_y",ncol=2,dir="v") +
-  stat_smooth(aes(color=stock),se=FALSE,method="gam",linetype=1,size=0.75,alpha=0.1) + 
+  stat_smooth(aes(color=stock),
+              se=FALSE,
+              method="gam",
+              formula=y~s(x,bs="tp"),
+              linetype=1,
+              size=0.75,
+              alpha=0.1) + 
   #stat_smooth(aes(color=stock),se=FALSE,method="lm",linetype=2,size=0.75,alpha=0.1) + 
   ylab("Length (mm)") + 
   xlab("Brood Year") + 
@@ -566,7 +581,7 @@ test <- mdat %>%
   #scale_color_grey() +
   scale_color_manual(values=c("red","blue"))
 
-png("Manuscript/Figure_8_Length_at_age_all_test.png",width=6,height=6,units="in",res=300);test;dev.off()
+png("Manuscript/Figure_8_Length_at_age_all_final.png",width=6,height=6,units="in",res=300);final;dev.off()
 
 
 
@@ -656,7 +671,7 @@ p <- recoverdat %>%
          agesex=paste(sex,fage,sep="; "),
          agesex=fct_expand(factor(agesex),"Female; 1.2"),
          agesex=fct_relevel(agesex,"Male; 1.2","Male; 1.3","Male; 1.4","Female; 1.2")) #%>% 
-  #filter(agesex!="Female; 1.2")
+#filter(agesex!="Female; 1.2")
 
 
 #  This is for scaling each facet to have a total y-axis range of 325mm
@@ -741,7 +756,7 @@ p <- recoverdat %>%
          agesex=paste(sex,fage,sep="; "),
          agesex=fct_expand(factor(agesex),"Female; 1.2"),
          agesex=fct_relevel(agesex,"Male; 1.2","Male; 1.3","Male; 1.4","Female; 1.2")) %>% 
-filter(agesex!="Female; 1.2")
+  filter(agesex!="Female; 1.2")
 
 
 #  This is for scaling each facet to have a total y-axis range of 325mm
@@ -816,17 +831,16 @@ png("Manuscript/Figure_8_Length_at_age_scales_free.png",width=6,height=6,units="
 
 #summarise_linear_models_length
 #  Create a table of linear model outputs
-mdat <- p %>%
+mdat <- recoverdat %>% 
+  filter(!is.na(sex) & fage%in%c("1.2","1.3","1.4")) %>% 
+  mutate(sex=fct_recode(sex,"Male"="M",
+                        "Female"="F"),
+         agesex=paste(sex,fage,sep="; "),
+         agesex=fct_expand(factor(agesex),"Female; 1.2"),
+         agesex=fct_relevel(agesex,"Male; 1.2","Male; 1.3","Male; 1.4","Female; 1.2")) %>%
   filter(length>510) %>% 
   dplyr::select(agesex,brood_year,stock,length) %>% 
   data.frame
-  
-#  Make individual models for exploring residuals
-#lm1 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 1.3")))
-#lm2 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 1.4")))
-#lm3 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.2")))
-#lm4 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.3")))
-#lm5 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.4")))
 
 
 p.coef <- mdat %>% 
@@ -840,16 +854,18 @@ p.sum <- mdat %>%
   group_by(agesex,stock) %>% 
   do(glance(lm(length~brood_year,data=.))) %>% 
   data.frame %>% 
-  dplyr::select(agesex,stock,adj.r.squared) %>% 
+  dplyr::select(agesex,stock,adj.r.squared,AIC.lm=AIC) %>% 
   arrange(stock,agesex) %>% 
   data.frame
 
 lm.out <- p.sum %>% 
   inner_join(p.coef) %>% 
-  dplyr::select(Stock=stock,agesex,-term,Slope=estimate,SE=std.error,-statistic,p.value,rsq=adj.r.squared) %>% 
+  dplyr::select(stock,agesex,-term,Slope=estimate,SE=std.error,-statistic,p.value,rsq=adj.r.squared,AIC.lm) %>% 
   mutate_if(is.numeric,round,3) %>% 
-  mutate(p.lm=ifelse(p.value>0,p.value,"<0.001")) %>% 
-  dplyr::select(-p.value)
+  mutate(p.lm=ifelse(p.value>0,p.value,"<0.001"),
+         AIC.lm=round(AIC.lm),
+         `Slope (SE)`=paste0(round(Slope,2)," (",round(SE,2),")")) %>% 
+  dplyr::select(-p.value,SE)
 
 lm.out %>% 
   write_csv("Manuscript/Length_at_age_stock_linear_regressions.csv")
@@ -859,33 +875,40 @@ lm.out %>%
 #  Now GAMs of fish length
 #-----------------------------------------------------------------------------------
 
+g1 <- gam(length ~ s(brood_year,bs="tp"), data = recoverdat)
+names(summary(g1))
+
 gam.output <- mdat %>% 
   nest(-c(agesex,stock)) %>% 
-  mutate(fit = map(data, ~mgcv::gam(length ~ s(brood_year), data = .)),
+  mutate(fit = map(data, ~mgcv::gam(length ~ s(brood_year,bs="tp"), data = .)),
          results = map(fit, glance),
          results2 = map(fit,tidy),
-         R.square = map_dbl(fit, ~ summary(.)$r.sq)) %>% 
+         R.square = map_dbl(fit, ~ summary(.)$r.sq),
+         DevExpl = map_dbl(fit, ~ summary(.)$dev.expl)) %>% 
   unnest(results,results2) %>%
   select(-c(data,fit,logLik,deviance,df.residual,term,ref.df,statistic)) %>% 
   mutate(p.value = ifelse(round(p.value,3)==0,"<0.001",round(p.value,3))) %>% 
   arrange(stock,agesex)
 
+
+#  Combine the AICs and calculated a delta AIC value where a negative deltaAIC means the GAM did better
+gam.output %>% 
+  inner_join(lm.out) %>% 
+  mutate(deltaAIC=AIC-AIC.lm,
+         edf=round(edf,1)) %>% 
+  dplyr::select(-c(df,AIC,BIC,AIC.lm)) %>% 
+  write.csv("Manuscript/GAM_lm_Compare.csv")
+
 #  We want to compare with linear models. We will use linear glms for the comparison
 glm.output <- mdat %>% 
   nest(-c(agesex,stock)) %>% 
   mutate(fit = map(data, ~ glm(length ~ brood_year, data = .)),
-         results = map(fit, glance)) %>% 
-  unnest(results) %>%
-  select(stock,agesex,AIC_glm=AIC)
-
-#  Combine the AICs and calculated a delta AIC value where a negative deltaAIC means the GAM did better
-gam.output %>% 
-  inner_join(glm.output) %>% 
-  mutate(deltaAIC=AIC-AIC_glm,
-         edf=round(edf,1)) %>% 
-  dplyr::select(-c(df,AIC,BIC,AIC_glm)) %>% 
-  write.csv("GAM_GLM_Compare.csv")
- 
+         results = map(fit, glance),
+         results2 = map(fit, tidy)) %>% 
+  unnest(results,results2) %>%
+  filter(term!="(Intercept)") %>% 
+  dplyr::select(-c(deviance,null.deviance,df.residual,BIC,fit,data,df.null,logLik))
+select(stock,agesex,AIC_glm=AIC)
 
 #  Opted to not include GAMMs because the Chickamin data had too many missing years.
 #  Examine autocorrelated GAMMs also
@@ -897,14 +920,41 @@ gamm4 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.2" &
 gamm5 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.3" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
 gamm6 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.4" & stock=="Unuk"),correlation=corARMA(p=1,q=0))
 
+cgamm1 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.2" & stock=="Chickamin"),correlation=corARMA(p=1,q=0))
+cgamm2 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.3" & stock=="Chickamin"),correlation=corARMA(p=1,q=0))
+cgamm3 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Male; 1.4" & stock=="Chickamin"),correlation=corARMA(p=1,q=0))
+cgamm4 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.2" & stock=="Chickamin"),correlation=corARMA(p=1,q=0))
+#  Note: had to increase memory.limit to 16000 for the female 1.3 Unuk
+cgamm5 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.3" & stock=="Chickamin"),correlation=corARMA(p=1,q=0))
+cgamm6 <- gamm(length~s(brood_year),data=mdat %>%  filter(agesex=="Female; 1.4" & stock=="Chickamin"),correlation=corARMA(p=1,q=0))
+
+#  Make individual models for exploring residuals
+lm1 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 1.3" & stock=="Unuk")))
+lm2 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 1.4" & stock=="Unuk")))
+lm3 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.2" & stock=="Unuk")))
+lm4 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.3" & stock=="Unuk")))
+lm5 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.4" & stock=="Unuk")))
+
+lm1 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 1.3" & stock=="Chickamin")))
+lm2 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Female; 1.4" & stock=="Chickamin")))
+lm3 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.2" & stock=="Chickamin")))
+lm4 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.3" & stock=="Chickamin")))
+lm5 <- (lm(log(length)~brood_year,data=mdat %>%  filter(agesex=="Male; 1.4" & stock=="Chickamin")))
+
+acf(residuals(lm1))
+acf(residuals(lm2))
+acf(residuals(lm3))
+acf(residuals(lm4))
+acf(residuals(lm5))
+
 
 gam.output %>% 
   inner_join(glm.output) %>% 
   left_join(data.frame(agesex=c(paste("Male",seq(1.2,1.4,by=0.1),sep="; "),
-                    paste("Female",seq(1.2,1.4,by=0.1),sep="; ")),
-           stock="Unuk",
-           AIC_gamm=c(AIC(gamm1$lme),AIC(gamm2$lme),AIC(gamm3$lme),AIC(gamm4$lme),AIC(gamm5$lme),AIC(gamm6$lme))))
-             
+                                paste("Female",seq(1.2,1.4,by=0.1),sep="; ")),
+                       stock="Unuk",
+                       AIC_gamm=c(AIC(gamm1$lme),AIC(gamm2$lme),AIC(gamm3$lme),AIC(gamm4$lme),AIC(gamm5$lme),AIC(gamm6$lme))))
+
 
 
 
@@ -1006,23 +1056,23 @@ plot(betareg(value ~ brood_year, data = p %>% filter(age=="1.3" & sex=="Female" 
 
 # Plot ACF (autocorrelation function) to examine independence of model residuals for beta regression. 
 # Does not appear to be any significant temporal autocorrelation
-mybetaacfplotfun <- function(mystock,myage,mysex,linkf){
+mybetaacfplotfun <- function(mystock,myage,mysex){
   mydat <- p %>% filter(age==myage & sex==mysex & stock==mystock)
   acf(resid(betareg(value ~ brood_year, data = mydat,link="loglog")))
 }
 
-mybetaafplotfun("Unuk","1.2","Male","cloglog")
-mybetaafplotfun("Unuk","1.3","Male","cloglog")
-mybetaafplotfun("Unuk","1.4","Male","cloglog")
-mybetaafplotfun("Unuk","1.2","Female","cloglog")
-mybetaafplotfun("Unuk","1.3","Female","cloglog")
-mybetaafplotfun("Unuk","1.4","Female","cloglog")
-mybetaafplotfun("Chickamin","1.2","Male","cloglog") 
-mybetaafplotfun("Chickamin","1.3","Male","cloglog") 
-mybetaafplotfun("Chickamin","1.4","Male","cloglog") 
-mybetaafplotfun("Chickamin","1.2","Female","cloglog") 
-mybetaafplotfun("Chickamin","1.3","Female","cloglog") 
-mybetaafplotfun("Chickamin","1.4","Female","cloglog") 
+mybetaafplotfun("Unuk","1.2","Male")
+mybetaafplotfun("Unuk","1.3","Male")
+mybetaafplotfun("Unuk","1.4","Male")
+mybetaafplotfun("Unuk","1.2","Female")
+mybetaafplotfun("Unuk","1.3","Female")
+mybetaafplotfun("Unuk","1.4","Female")
+mybetaafplotfun("Chickamin","1.2","Male") 
+mybetaafplotfun("Chickamin","1.3","Male") 
+mybetaafplotfun("Chickamin","1.4","Male") 
+mybetaafplotfun("Chickamin","1.2","Female") 
+mybetaafplotfun("Chickamin","1.3","Female") 
+mybetaafplotfun("Chickamin","1.4","Female") 
 
 
 #-----------------------------------------------------------------------------
@@ -1034,9 +1084,9 @@ mybetaafplotfun("Chickamin","1.4","Female","cloglog")
 mybetagamfitfun <- function(mystock,myage,mysex){
   mydat <- p %>% filter(age==myage & sex==mysex & stock==mystock)
   return(c(AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat)),
-    AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
-    AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
-    AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
+           AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
+           AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
 }
 
 #  Link function didn't matter across model types
@@ -1061,7 +1111,7 @@ mybetagamfitfun("Chickamin","1.4","Female")
 mybetagamplotfun <- function(mystock,myage,mysex,linkf){
   mydat <- p %>% filter(age==myage & sex==mysex & stock==mystock)
   print(AIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
-        betareg(value ~ brood_year, data = mydat,link="loglog")))
+            betareg(value ~ brood_year, data = mydat,link="loglog")))
   print(BIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
             betareg(value ~ brood_year, data = mydat,link="loglog")))
 }
@@ -1109,7 +1159,7 @@ betaregout <- bind_rows(
   mybetafun("Unuk","1.4","Female","loglog"),
   mybetafun("Chickamin","1.2","Male","loglog"),
   mybetafun("Chickamin","1.3","Male","loglog"),
-  mybetafun("Chickamin","1.4","Male","cloglog"),
+  mybetafun("Chickamin","1.4","Male","loglog"),
   mybetafun("Chickamin","1.2","Female","loglog"),
   mybetafun("Chickamin","1.3","Female","loglog"),
   mybetafun("Chickamin","1.4","Female","loglog")) %>% 
@@ -1222,10 +1272,10 @@ mybetaacfplotfun("Chickamin","cloglog")
 #  Identify the best link function for the beta gams. 
 mybetagamfitfun <- function(mystock){
   mydat <- p %>% filter(stock==mystock)
-  return(c(AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat)),
-           AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
-           AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
-           AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
+  return(c(AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="logit"), data = mydat)),
+           AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="probit"), data = mydat)),
+           AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="cloglog"), data = mydat)),
+           AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="cauchit"), data = mydat))))
 }
 
 #  Link function didn't matter across model types
@@ -1239,14 +1289,23 @@ mybetagamfitfun("Chickamin")
 #  Print AIC and dfs for each of the different models
 mybetagamplotfun <- function(mystock,linkf){
   mydat <- p %>% filter(stock==mystock)
-  print(AIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
+  print(AIC(gam(value~s(brood_year,bs="cr"),family=betar(link=linkf), data = mydat),
             betareg(value ~ brood_year, data = mydat,link="loglog")))
-  print(BIC(gam(value~s(brood_year),family=betar(link=linkf), data = mydat),
+  print(BIC(gam(value~s(brood_year,bs="cr"),family=betar(link=linkf), data = mydat),
             betareg(value ~ brood_year, data = mydat,link="loglog")))
 }
 
+mydat <- surv %>% 
+  mutate(stock=fct_rev(factor(stock)),
+         survival=survival/100) %>% 
+  filter(stock=="Chickamin")
+mydat <- p %>% filter(stock=="Chickamin")
+g1 <- gam(value~s(brood_year,bs="cs"),family=betar(link="cloglog"), data = mydat);plot(g1);summary(g1)
+g2 <- gam(value~s(brood_year,k=8,bs="tp"),family=betar(link="cloglog"), data = mydat);plot(g2);summary(g2)
+
 mybetagamplotfun("Unuk","cloglog")
 mybetagamplotfun("Chickamin","cloglog") 
+
 
 #  This comparison via AIC and BIC suggests the beta regression (based on a delta AIC / delta BIC of at least 2 units) is not different
 #  than the beta GAM. So we go with the simple beta regression
@@ -1347,10 +1406,10 @@ mybetaacfplotfun(p,"Chickamin","1.4")
 #  Identify the best link function for the beta gams. 
 mybetagamfitfun <- function(mystock,myage){
   mydat <- p %>% filter(stock==mystock & fage==myage)
-  return(c(AIC(gam(value~s(brood_year),family=betar(link="logit"), data = mydat)),
-           AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat)),
-           AIC(gam(value~s(brood_year),family=betar(link="cloglog"), data = mydat)),
-           AIC(gam(value~s(brood_year),family=betar(link="cauchit"), data = mydat))))
+  return(c(AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="logit"), data = mydat)),
+           AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="probit"), data = mydat)),
+           AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="cloglog"), data = mydat)),
+           AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="cauchit"), data = mydat))))
 }
 
 #  Link function didn't matter across model types
@@ -1368,9 +1427,9 @@ mybetagamfitfun("Chickamin","1.4")
 #  Print AIC and dfs for each of the different models
 mybetagamplotfun <- function(mystock,myage){
   mydat <- p %>% filter(stock==mystock & fage==myage)
-  print(AIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat),
+  print(AIC(gam(value~s(brood_year,bs="tp"),family=betar(link="probit"), data = mydat),
             betareg(value ~ brood_year, data = mydat,link="probit")))
-  print(BIC(gam(value~s(brood_year),family=betar(link="probit"), data = mydat),
+  print(BIC(gam(value~s(brood_year,bs="tp"),family=betar(link="probit"), data = mydat),
             betareg(value ~ brood_year, data = mydat,link="probit")))
 }
 
@@ -1380,6 +1439,12 @@ mybetagamplotfun("Unuk","1.4")
 mybetagamplotfun("Chickamin","1.2") 
 mybetagamplotfun("Chickamin","1.3") 
 mybetagamplotfun("Chickamin","1.4") 
+
+p %>% 
+  ggplot(aes(brood_year,value)) +
+  geom_smooth
+
+
 
 #  This comparison via AIC and BIC suggests the beta regression (based on a delta AIC / delta BIC of at least 2 units) is not different
 #  than the beta GAM. So we go with the simple beta regression
@@ -1413,5 +1478,3 @@ betaregout <- bind_rows(
 
 betaregout %>% 
   write_csv("Manuscript/Beta_survival_by_age_regressions.csv")
-
-
